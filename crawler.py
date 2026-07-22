@@ -347,7 +347,7 @@ def push_to_github(csv_path: str):
         log.error("GITHUB_TOKEN env var not set — skipping push")
         return
 
-    api = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}/contents/{CSV_FILE}"
+    api = f"https://api.github.com/repos/{mina-70}/{abm-prospect}/contents/{CSV_FILE}"
     headers = {
         "Authorization": f"token {token}",
         "Accept": "application/vnd.github.v3+json",
