@@ -25,8 +25,8 @@ import requests
 from bs4 import BeautifulSoup
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
-GITHUB_USER   = "YOUR-GITHUB-USERNAME"
-GITHUB_REPO   = "YOUR-REPO-NAME"
+GITHUB_USER   = "mina-70"
+GITHUB_REPO   = "abm-prospect"
 GITHUB_BRANCH = "main"
 CSV_FILE      = "prospects.csv"
 DELAY         = 2.0   # seconds between requests — be polite
