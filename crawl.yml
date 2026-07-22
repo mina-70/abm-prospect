@@ -1,0 +1,64 @@
+name: Auto-update university prospects
+
+on:
+  # Every Monday 07:00 UTC — update missing contacts
+  schedule:
+    - cron: "0 7 * * 1"
+  # Every 1st of month 07:00 UTC — discover new universities
+    - cron: "0 7 1 * *"
+  # Manual trigger with options
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Mode"
+        required: true
+        default: "missing"
+        type: choice
+        options:
+          - missing      # fill empty contacts only
+          - all          # re-crawl everything
+          - discover     # find and add new universities
+          - full         # discover + crawl all
+      country:
+        description: "Country filter (optional, e.g. DE)"
+        required: false
+        default: ""
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install requests beautifulsoup4 lxml
+
+      - name: Run crawler
+        run: |
+          MODE="${{ github.event.inputs.mode || 'missing' }}"
+          COUNTRY="${{ github.event.inputs.country }}"
+
+          ARGS=""
+          [ "$MODE" = "all" ]      && ARGS="$ARGS --all"
+          [ "$MODE" = "discover" ] && ARGS="$ARGS --discover"
+          [ "$MODE" = "full" ]     && ARGS="$ARGS --discover --all"
+          [ -n "$COUNTRY" ]        && ARGS="$ARGS --country $COUNTRY"
+
+          python crawler.py $ARGS --csv prospects.csv
+
+      - name: Commit results
+        run: |
+          git config user.name  "ABM Auto-updater"
+          git config user.email "bot@abrilliantmind.blog"
+          git add prospects.csv crawl_status.json
+          git diff --staged --quiet || git commit -m \
+            "auto-update: prospects $(date -u '+%Y-%m-%d %H:%M') UTC"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
