@@ -1,0 +1,80 @@
+name: Auto-update university prospects
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"   # every Monday — update missing contacts
+    - cron: "0 7 1 * *"   # every 1st of month — discover new universities
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Mode"
+        required: true
+        default: "missing"
+        type: choice
+        options:
+          - missing
+          - all
+          - discover
+          - full
+      country:
+        description: "Country filter (optional, e.g. DE)"
+        required: false
+        default: ""
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests beautifulsoup4 lxml
+
+      - name: Run crawler + inject data into HTML
+        run: |
+          MODE="${{ github.event.inputs.mode || 'missing' }}"
+          COUNTRY="${{ github.event.inputs.country }}"
+          ARGS=""
+          [ "$MODE" = "all" ]      && ARGS="$ARGS --all"
+          [ "$MODE" = "discover" ] && ARGS="$ARGS --discover"
+          [ "$MODE" = "full" ]     && ARGS="$ARGS --discover --all"
+          [ -n "$COUNTRY" ]        && ARGS="$ARGS --country $COUNTRY"
+
+          python crawler.py $ARGS --csv prospects.csv
+          python - << 'PYEOF'
+import csv, json, re, datetime
+
+with open('prospects.csv', encoding='utf-8') as f:
+    rows = list(csv.DictReader(f))
+
+data_js = "window.PROSPECT_DATA = " + json.dumps(rows, ensure_ascii=False) + ";"
+
+with open('index.html', encoding='utf-8') as f:
+    html = f.read()
+
+html = re.sub(
+    r'/\* PROSPECT_DATA_START \*/.*?/\* PROSPECT_DATA_END \*/',
+    f"/* PROSPECT_DATA_START */\n{data_js}\n/* PROSPECT_DATA_END */",
+    html, flags=re.DOTALL
+)
+
+with open('index.html', 'w', encoding='utf-8') as f:
+    f.write(html)
+
+print(f"Injected {len(rows)} rows into index.html")
+PYEOF
+
+      - name: Commit results
+        run: |
+          git config user.name  "ABM Auto-updater"
+          git config user.email "bot@abrilliantmind.blog"
+          git add prospects.csv crawl_status.json index.html
+          git diff --staged --quiet || git commit -m \
+            "auto-update: prospects $(date -u '+%Y-%m-%d %H:%M') UTC"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
