@@ -296,7 +296,7 @@ footer{background:var(--sd);color:#fff;padding:28px 40px;font-family:sans-serif;
 <div class="toast" id="toast"></div>
 
 <script>
-const GITHUB_USER="YOUR-GITHUB-USERNAME",GITHUB_REPO="YOUR-REPO-NAME",GITHUB_BRANCH="main";
+const GITHUB_USER="mina-70",GITHUB_REPO="abm-prospect",GITHUB_BRANCH="main";
 const FLAGS={AT:"AT",DE:"DE",CH:"CH",UK:"UK",IE:"IE",IS:"IS",NL:"NL",BE:"BE",SE:"SE",DK:"DK",NO:"NO",FI:"FI",FR:"FR",IT:"IT",ES:"ES",PT:"PT",CZ:"CZ",PL:"PL",EE:"EE",HU:"HU",SI:"SI"};
 const FLAG_EMOJI={AT:"🇦🇹",DE:"🇩🇪",CH:"🇨🇭",UK:"🇬🇧",IE:"🇮🇪",IS:"🇮🇸",NL:"🇳🇱",BE:"🇧🇪",SE:"🇸🇪",DK:"🇩🇰",NO:"🇳🇴",FI:"🇫🇮",FR:"🇫🇷",IT:"🇮🇹",ES:"🇪🇸",PT:"🇵🇹",CZ:"🇨🇿",PL:"🇵🇱",EE:"🇪🇪",HU:"🇭🇺",SI:"🇸🇮"};
 const AVC=["av0","av1","av2","av3","av4","av5","av6"];
@@ -304,7 +304,7 @@ const MED=["medical","medicine","health sci","clinic","hospital","medizin","medu
 let ALL=[],MANUAL=[],filtered=[],activeCountry="ALL",activeUnit="ALL";
 let verifiedSet=new Set(),checkingSet=new Set(),newEntries=new Set();
 let lastSeen=parseInt(localStorage.getItem("abm_lastCount")||"0");
-function rawUrl(f){if(GITHUB_USER==="YOUR-GITHUB-USERNAME")return f+"?v="+Date.now();return"https://raw.githubusercontent.com/"+GITHUB_USER+"/"+GITHUB_REPO+"/"+GITHUB_BRANCH+"/"+f+"?v="+Date.now();}
+function rawUrl(f){if(GITHUB_USER==="mina-70")return f+"?v="+Date.now();return"https://raw.githubusercontent.com/"+GITHUB_USER+"/"+GITHUB_REPO+"/"+GITHUB_BRANCH+"/"+f+"?v="+Date.now();}
 function parseCSV(txt){const lines=txt.trim().split("\n");const hdr=lines[0].split(",").map(h=>h.trim().replace(/^"|"$/g,""));return lines.slice(1).map(line=>{const vals=[];let cur="",inq=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&!inq){inq=true;}else if(c==='"'&&inq&&line[i+1]==='"'){cur+='"';i++;}else if(c==='"'&&inq){inq=false;}else if(c===","&&!inq){vals.push(cur.trim());cur="";}else cur+=c;}vals.push(cur.trim());const obj={};hdr.forEach((h,i)=>obj[h]=(vals[i]||"").trim());return obj;}).filter(r=>r.university&&r.university.trim());}
 function isMed(d){const t=(d.university+" "+d.unit_name+" "+d.unit_type).toLowerCase();return MED.some(k=>t.includes(k));}
 async function loadData(){try{const[csvR,stR]=await Promise.allSettled([fetch(rawUrl("prospects.csv")),fetch(rawUrl("crawl_status.json"))]);if(csvR.status!=="fulfilled"||!csvR.value.ok)throw new Error("Could not load prospects.csv");ALL=parseCSV(await csvR.value.text());ALL.forEach((d,i)=>{if(i>=lastSeen)newEntries.add("csv_"+i);});if(stR.status==="fulfilled"&&stR.value.ok){const s=await stR.value.json();if(s.last_run){const d=new Date(s.last_run);document.getElementById("lastRefresh").textContent=d.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}}else{document.getElementById("lastRefresh").textContent="recently";}loadManual();buildFilters();filtered=getCombined();doSort("named");updateStats();localStorage.setItem("abm_lastCount",ALL.length.toString());showToast("Loaded "+(ALL.length+MANUAL.length)+" contacts");}catch(e){document.getElementById("results").innerHTML="<div class=\"empty\"><div style=\"font-size:32px;margin-bottom:12px\">⚠️</div><div style=\"font-size:15px;font-weight:600;margin-bottom:8px\">Could not load data</div><div style=\"font-size:12px;color:var(--g400)\">"+e.message+"<br><br>Set GITHUB_USER and GITHUB_REPO in the script.</div></div>";document.getElementById("rcount").textContent="Error";}}
